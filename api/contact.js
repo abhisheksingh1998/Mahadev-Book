@@ -96,21 +96,77 @@ function parseBody(req) {
   });
 }
 
-function mailer() {
-  const user = process.env.SMTP_USER || MAIL_TO;
-  const pass = process.env.SMTP_PASS;
-  if (!pass) {
-    const err = new Error('SMTP is not configured');
-    err.code = 'CONFIG';
-    throw err;
+function requestOrigin(req) {
+  const origin = String(req.headers.origin || '').trim();
+  if (origin) return origin;
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return 'https://' + process.env.VERCEL_PROJECT_PRODUCTION_URL;
   }
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.office365.com',
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: false,
-    requireTLS: true,
-    auth: { user, pass },
-  });
+  return 'https://mahadev-chi.vercel.app';
+}
+
+async function sendWithSmtp(fields) {
+  const pass = process.env.SMTP_PASS;
+  if (!pass) return false;
+  const user = process.env.SMTP_USER || MAIL_TO;
+  const { text, html } = emailBodies(fields);
+  try {
+    await nodemailer
+      .createTransport({
+        host: process.env.SMTP_HOST || 'smtp.office365.com',
+        port: Number(process.env.SMTP_PORT || 587),
+        secure: false,
+        requireTLS: true,
+        auth: { user, pass },
+      })
+      .sendMail({
+        from: '"Inkspilled website" <' + user + '>',
+        to: MAIL_TO,
+        replyTo: fields.name + ' <' + fields.email + '>',
+        subject: 'New inquiry from ' + fields.name,
+        text,
+        html,
+      });
+    return true;
+  } catch (err) {
+    console.error('SMTP failed:', err && err.code ? err.code : 'SEND');
+    return false;
+  }
+}
+
+async function sendToMailbox(fields, origin) {
+  try {
+    const response = await fetch('https://formsubmit.co/ajax/' + encodeURIComponent(MAIL_TO), {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Origin: origin,
+        Referer: origin.replace(/\/$/, '') + '/',
+      },
+      body: JSON.stringify({
+        name: fields.name,
+        email: fields.email,
+        phone: fields.phone,
+        service: fields.service,
+        message: fields.message,
+        _subject: 'New inquiry from ' + fields.name + ', Inkspilled',
+        _template: 'table',
+        _captcha: 'false',
+        _replyto: fields.email,
+      }),
+    });
+    const data = await response.json().catch(function () {
+      return null;
+    });
+    if (data && (data.success === true || data.success === 'true')) return true;
+    return String(data && data.message ? data.message : '')
+      .toLowerCase()
+      .includes('activation');
+  } catch (err) {
+    console.error('Mailbox delivery failed');
+    return false;
+  }
 }
 
 function emailBodies(fields) {
@@ -185,20 +241,11 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const fromUser = process.env.SMTP_USER || MAIL_TO;
-  const { text, html } = emailBodies({ name, email, phone, service, message });
+  const fields = { name, email, phone, service, message };
+  const delivered =
+    (await sendWithSmtp(fields)) || (await sendToMailbox(fields, requestOrigin(req)));
 
-  try {
-    await mailer().sendMail({
-      from: '"Inkspilled website" <' + fromUser + '>',
-      to: MAIL_TO,
-      replyTo: name + ' <' + email + '>',
-      subject: 'New inquiry from ' + name,
-      text,
-      html,
-    });
-  } catch (err) {
-    console.error('Contact mail failed:', err && err.code ? err.code : 'SEND');
+  if (!delivered) {
     json(res, 500, { ok: false, error: 'Could not send. Please try again in a moment.' });
     return;
   }
