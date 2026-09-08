@@ -1,6 +1,7 @@
 const nodemailer = require('nodemailer');
 
 const MAIL_TO = 'navneetsingh@inkspilled.in';
+const SITE_URL = 'https://www.inkspilled.com/';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_SHORT = 120;
 const MAX_MESSAGE = 4000;
@@ -23,7 +24,7 @@ function escapeHtml(value) {
 
 function clientIp(req) {
   const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-  return forwarded || req.socket?.remoteAddress || 'unknown';
+  return forwarded || (req.socket && req.socket.remoteAddress) || 'unknown';
 }
 
 function rateLimited(ip) {
@@ -44,6 +45,7 @@ function originAllowed(req) {
   try {
     const host = new URL(origin).hostname;
     if (host === 'localhost' || host === '127.0.0.1') return true;
+    if (host === 'inkspilled.com' || host === 'www.inkspilled.com') return true;
     if (host === 'mahadev-chi.vercel.app') return true;
     if (host.endsWith('.vercel.app') && host.startsWith('mahadev-')) return true;
     const self = process.env.VERCEL_URL ? new URL('https://' + process.env.VERCEL_URL).hostname : '';
@@ -96,88 +98,23 @@ function parseBody(req) {
   });
 }
 
-function requestOrigin(req) {
-  const origin = String(req.headers.origin || '').trim();
-  if (origin) return origin;
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-    return 'https://' + process.env.VERCEL_PROJECT_PRODUCTION_URL;
-  }
-  return 'https://mahadev-chi.vercel.app';
-}
-
-async function sendWithSmtp(fields) {
-  const pass = process.env.SMTP_PASS;
-  if (!pass) return false;
-  const user = process.env.SMTP_USER || MAIL_TO;
+function mailMessage(fields) {
+  const fromName = String(fields.name).replace(/"/g, '');
   const { text, html } = emailBodies(fields);
-  try {
-    await nodemailer
-      .createTransport({
-        host: process.env.SMTP_HOST || 'smtp.office365.com',
-        port: Number(process.env.SMTP_PORT || 587),
-        secure: false,
-        requireTLS: true,
-        auth: { user, pass },
-      })
-      .sendMail({
-        from: '"Inkspilled website" <' + user + '>',
-        to: MAIL_TO,
-        replyTo: fields.name + ' <' + fields.email + '>',
-        subject: 'New inquiry from ' + fields.name,
-        text,
-        html,
-      });
-    return true;
-  } catch (err) {
-    console.error('SMTP failed:', err && err.code ? err.code : 'SEND');
-    return false;
-  }
-}
-
-async function sendToMailbox(fields, origin) {
-  const payload = {
-    name: fields.name,
-    email: fields.email,
-    phone: fields.phone,
-    service: fields.service,
-    message: fields.message,
-    _subject: 'New inquiry from ' + fields.name + ', Inkspilled',
-    _template: 'table',
-    _captcha: 'false',
-    _replyto: fields.email,
+  return {
+    from: '"Inkspilled" <' + MAIL_TO + '>',
+    to: MAIL_TO,
+    replyTo: '"' + fromName + '" <' + fields.email + '>',
+    subject: 'New Inkspilled form submission from ' + fields.name,
+    text,
+    html,
+    headers: {
+      'X-Mailer': 'Inkspilled',
+      'X-Priority': '3',
+      'Auto-Submitted': 'auto-generated',
+    },
+    envelope: { from: MAIL_TO, to: MAIL_TO },
   };
-  try {
-    const response = await fetch('https://formsubmit.co/ajax/' + encodeURIComponent(MAIL_TO), {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        Origin: origin,
-        Referer: origin.replace(/\/$/, '') + '/',
-      },
-      body: JSON.stringify(payload),
-    });
-    const raw = await response.text();
-    let data = null;
-    try {
-      data = raw ? JSON.parse(raw) : null;
-    } catch {
-      data = null;
-    }
-    if (acceptedMailResponse(response.status, data, raw)) return true;
-    console.error('Mailbox delivery rejected:', response.status);
-    return false;
-  } catch (err) {
-    console.error('Mailbox delivery failed');
-    return false;
-  }
-}
-
-function acceptedMailResponse(status, data, raw) {
-  if (data && (data.ok === true || data.success === true || data.success === 'true')) return true;
-  const text = String((data && (data.message || data.error)) || raw || '').toLowerCase();
-  if (text.indexOf('activat') !== -1 || text.indexOf('thank') !== -1) return true;
-  return status >= 200 && status < 300 && Boolean(raw);
 }
 
 function emailBodies(fields) {
@@ -188,28 +125,157 @@ function emailBodies(fields) {
     ['Service', fields.service || '—'],
     ['Message', fields.message || '—'],
   ];
-  const text = rows.map(([label, value]) => label + ': ' + value).join('\n');
+  const text = [
+    'Someone just submitted your form on ' + SITE_URL,
+    '',
+    rows.map(function (row) {
+      return row[0] + ': ' + row[1];
+    }).join('\n'),
+    '',
+    'Reply directly to this email to contact the sender.',
+    'Inkspilled · Delhi · Dubai · ' + SITE_URL,
+  ].join('\n');
+
   const htmlRows = rows
-    .map(
-      ([label, value]) =>
-        '<tr><td style="padding:10px 12px;border-bottom:1px solid #ececec;color:#666;width:140px;vertical-align:top;">' +
-        escapeHtml(label) +
-        '</td><td style="padding:10px 12px;border-bottom:1px solid #ececec;color:#1a1a1a;white-space:pre-wrap;">' +
-        escapeHtml(value) +
-        '</td></tr>'
-    )
+    .map(function (row) {
+      return (
+        '<tr>' +
+        '<td style="padding:12px 16px;border-bottom:1px solid #ececec;color:#6a6a72;font-size:13px;width:140px;vertical-align:top;">' +
+        escapeHtml(row[0]) +
+        '</td>' +
+        '<td style="padding:12px 16px;border-bottom:1px solid #ececec;color:#12121a;font-size:14px;white-space:pre-wrap;">' +
+        escapeHtml(row[1]) +
+        '</td>' +
+        '</tr>'
+      );
+    })
     .join('');
+
   const html =
-    '<div style="font-family:Arial,sans-serif;background:#f6f6f4;padding:24px;">' +
-    '<div style="max-width:640px;margin:0 auto;background:#fff;border:1px solid #ececec;border-radius:12px;overflow:hidden;">' +
-    '<div style="padding:20px 24px;background:#1a1a1a;color:#fff;">' +
-    '<p style="margin:0;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#bbb;">Inkspilled</p>' +
-    '<h1 style="margin:8px 0 0;font-size:22px;">New website inquiry</h1>' +
+    '<div style="margin:0;padding:24px;background:#f5f2ea;font-family:Arial,Helvetica,sans-serif;">' +
+    '<div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #ececec;border-radius:16px;overflow:hidden;">' +
+    '<div style="height:6px;background:linear-gradient(90deg,#e8352b 0 33%,#4ea63a 33% 66%,#1a86d8 66% 100%);"></div>' +
+    '<div style="padding:24px 28px 8px;">' +
+    '<p style="margin:0;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#6a6a72;">Inkspilled</p>' +
+    '<h1 style="margin:8px 0 0;font-size:22px;line-height:1.3;color:#12121a;">New form submission</h1>' +
+    '<p style="margin:12px 0 0;font-size:15px;line-height:1.55;color:#12121a;">Someone just submitted your form on <a href="' +
+    SITE_URL +
+    '" style="color:#1a86d8;text-decoration:none;">' +
+    SITE_URL +
+    '</a></p>' +
     '</div>' +
-    '<table style="width:100%;border-collapse:collapse;">' +
+    '<table style="width:100%;border-collapse:collapse;margin-top:8px;">' +
     htmlRows +
-    '</table></div></div>';
+    '</table>' +
+    '<div style="padding:18px 28px 24px;color:#6a6a72;font-size:13px;line-height:1.5;">' +
+    '<p style="margin:0;">Reply directly to this email to reach the sender.</p>' +
+    '<p style="margin:10px 0 0;">Inkspilled · Delhi · Dubai<br><a href="' +
+    SITE_URL +
+    '" style="color:#1a86d8;text-decoration:none;">' +
+    SITE_URL.replace(/\/$/, '') +
+    '</a></p>' +
+    '</div></div></div>';
+
   return { text, html };
+}
+
+async function sendMail(transport, fields) {
+  await transport.sendMail(mailMessage(fields));
+  return true;
+}
+
+async function sendWithSmtp(fields) {
+  const pass = process.env.SMTP_PASS;
+  if (!pass) return false;
+  const user = process.env.SMTP_USER || MAIL_TO;
+  try {
+    const transport = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || 'smtp.office365.com',
+      port: Number(process.env.SMTP_PORT || 587),
+      secure: false,
+      requireTLS: true,
+      auth: { user: user, pass: pass },
+    });
+    const message = mailMessage(fields);
+    message.from = '"Inkspilled" <' + user + '>';
+    message.envelope = { from: user, to: MAIL_TO };
+    await transport.sendMail(message);
+    return true;
+  } catch (err) {
+    console.error('SMTP failed:', err && err.code ? err.code : 'SEND');
+    return false;
+  }
+}
+
+async function sendWithDirectMx(fields) {
+  const targets = [
+    { host: 'inkspilled-in.mail.protection.outlook.com', port: 587 },
+    { host: 'inkspilled-in.mail.protection.outlook.com', port: 25 },
+  ];
+  for (let i = 0; i < targets.length; i += 1) {
+    try {
+      await sendMail(
+        nodemailer.createTransport({
+          host: targets[i].host,
+          port: targets[i].port,
+          secure: false,
+          tls: { rejectUnauthorized: true },
+          connectionTimeout: 8000,
+          greetingTimeout: 8000,
+          socketTimeout: 8000,
+        }),
+        fields
+      );
+      return true;
+    } catch (err) {
+      console.error('Direct MX failed:', targets[i].port, err && err.code ? err.code : 'SEND');
+    }
+  }
+  return false;
+}
+
+function acceptedMailResponse(status, data, raw) {
+  if (data && (data.ok === true || data.success === true || data.success === 'true')) return true;
+  const text = String((data && (data.message || data.error)) || raw || '').toLowerCase();
+  if (text.indexOf('activat') !== -1 || text.indexOf('thank') !== -1) return true;
+  return status >= 200 && status < 300 && Boolean(raw);
+}
+
+async function sendToMailbox(fields) {
+  const payload = {
+    name: fields.name,
+    email: fields.email,
+    phone: fields.phone,
+    service: fields.service,
+    message: fields.message,
+    _subject: 'New Inkspilled form submission from ' + fields.name,
+    _template: 'box',
+    _captcha: 'false',
+    _replyto: fields.email,
+  };
+  try {
+    const response = await fetch('https://formsubmit.co/ajax/' + encodeURIComponent(MAIL_TO), {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Origin: SITE_URL.replace(/\/$/, ''),
+        Referer: SITE_URL,
+      },
+      body: JSON.stringify(payload),
+    });
+    const raw = await response.text();
+    let data = null;
+    try {
+      data = raw ? JSON.parse(raw) : null;
+    } catch {
+      data = null;
+    }
+    return acceptedMailResponse(response.status, data, raw);
+  } catch (err) {
+    console.error('Mailbox delivery failed');
+    return false;
+  }
 }
 
 module.exports = async function handler(req, res) {
@@ -252,9 +318,11 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const fields = { name, email, phone, service, message };
+  const fields = { name: name, email: email, phone: phone, service: service, message: message };
   const delivered =
-    (await sendWithSmtp(fields)) || (await sendToMailbox(fields, requestOrigin(req)));
+    (await sendWithSmtp(fields)) ||
+    (await sendWithDirectMx(fields)) ||
+    (await sendToMailbox(fields));
 
   if (!delivered) {
     json(res, 500, { ok: false, error: 'Could not send. Please try again in a moment.' });
