@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Inkspilled — Coming Soon</title>
+<meta name="description" content="A creative and technology studio building brands that move. Working across India and the UAE now — inkspilled.com is on its way." />
+<!-- Open Graph -->
+<meta property="og:title" content="Inkspilled — Coming Soon" />
+<meta property="og:description" content="A creative and technology studio building brands that move. Delhi · Dubai · USA soon." />
+<meta property="og:type" content="website" />
+<!-- Favicon (add your files to the same folder) -->
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+<style>
+  :root{
+    --bg:#f5f2ea; --panel:#ffffff; --text:#12121a; --mute:#6a6a72;
+    --red:#e8352b; --green:#4ea63a; --blue:#1a86d8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+
+  /* ---- RGB intro ---- */
+  #intro{position:fixed; inset:0; z-index:50; display:flex; pointer-events:none;}
+  #intro .p{flex:1; height:100%; transform:translateY(0);
+    transition:transform 1.05s cubic-bezier(.76,0,.24,1);}
+  #intro.open .p1{transform:translateY(102%);}
+  #intro.open .p2{transform:translateY(-102%); transition-delay:.07s;}
+  #intro.open .p3{transform:translateY(102%); transition-delay:.14s;}
+  #intro.gone{display:none;}
+
+  /* ---- background washes ---- */
+  .wash{position:absolute; border-radius:50%; filter:blur(80px); opacity:.05; z-index:0;}
+
+  /* ---- floating corner-shape tiles ---- */
+  .shapes{position:absolute; inset:0; z-index:1; pointer-events:none; overflow:hidden;}
+  .shapes span{position:absolute; opacity:.16; border-radius:6px 0 6px 6px;
+    animation:floaty var(--dur) ease-in-out var(--delay) infinite;}
+  @keyframes floaty{
+    0%,100%{transform:translate(0,0) rotate(0deg);}
+    33%{transform:translate(10px,-14px) rotate(8deg);}
+    66%{transform:translate(-8px,10px) rotate(-6deg);}
+  }
+
+  /* ---- layout ---- */
+  .row{position:relative; z-index:2; min-height:100vh; display:flex;}
+  .left{flex:1 1 60%; min-height:100vh; position:relative; display:flex;
+    flex-direction:column; justify-content:space-between; padding:clamp(28px,4vw,60px);}
+  .right{flex:0 0 40%; min-height:100vh; display:flex; align-items:center;
+    justify-content:center; padding:clamp(28px,4vw,60px);}
+
+  /* drip lines */
+  .drip{position:absolute; top:0; width:2px; z-index:2; opacity:.4; pointer-events:none;}
+
+  /* logo mark */
+  .mark{display:flex; gap:3px;}
+  .mark i{display:block; width:8px; height:26px;}
+  .mark .r{background:var(--red); border-radius:3px;}
+  .mark .g{background:var(--green);}
+  .mark .b{background:var(--blue); border-radius:0 3px 3px 3px;}
+  .eyebrow{font-size:12.5px; font-weight:600; color:var(--mute); letter-spacing:.04em;}
+
+  h1.head{font-size:clamp(32px,4.2vw,58px); font-weight:800; letter-spacing:-.04em;
+    line-height:1.03; color:var(--text);}
+  h1.head .cyc{display:inline-block; min-width:5ch;}
+  .intro-p{color:var(--mute); font-size:16px; margin-top:20px; max-width:460px; line-height:1.55;}
+
+  .clocks{display:flex; gap:22px; flex-wrap:wrap; margin-top:26px;}
+  .clock{display:flex; align-items:center; gap:9px;}
+  .clock .dot{width:8px; height:8px; border-radius:50%;}
+  .clock .name{color:var(--text); font-size:13px; font-weight:600; min-width:48px;}
+  .clock .time{color:var(--mute); font-size:13px; font-variant-numeric:tabular-nums;}
+  .clock.soon{opacity:.5;}
+
+  .addr{display:flex; gap:30px; flex-wrap:wrap; color:var(--mute); font-size:12.5px; line-height:1.6;}
+  .addr b{color:var(--text); font-weight:600; display:block; margin-bottom:3px;}
+  .addr .soon{opacity:.6;}
+
+  /* form card */
+  .card{background:rgba(255,255,255,.6); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border:1px solid rgba(0,0,0,.08); border-radius:24px 0 24px 24px;
+    padding:clamp(24px,3vw,36px); box-shadow:0 30px 80px rgba(0,0,0,.12); width:100%; max-width:400px;}
+  .card h3{color:var(--text); font-size:clamp(20px,2.4vw,26px); font-weight:800;
+    letter-spacing:-.03em; margin-bottom:8px; line-height:1.1;}
+  .card p.sub{color:var(--mute); font-size:14.5px; line-height:1.5; margin-bottom:20px;}
+  .card input, .card textarea, .card select{width:100%; background:rgba(0,0,0,.03);
+    border:1px solid rgba(0,0,0,.14); border-radius:12px 0 12px 12px; padding:13px 15px;
+    color:var(--text); font-size:14px; outline:none; font-family:inherit; margin-bottom:10px;}
+  .card textarea{min-height:84px; resize:vertical;}
+  .card input::placeholder, .card textarea::placeholder{color:#9a9aa2;}
+  .card select{appearance:none; -webkit-appearance:none; cursor:pointer;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236a6a72' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 15px center; padding-right:38px;}
+  .card select.empty{color:#9a9aa2;}
+  .card button{width:100%; background:var(--blue); color:#fff; border:none;
+    border-radius:12px 0 12px 12px; padding:15px; font-weight:700; font-size:15px;
+    cursor:pointer; font-family:inherit;}
+  .err{color:var(--red); font-size:13px; margin-bottom:10px; display:none;}
+  .sent-mark{display:flex; gap:4px; margin-bottom:16px;}
+  .sent-mark i{display:block; width:9px; height:30px;}
+
+  @keyframes spillIn{from{opacity:0; transform:translateY(16px);} to{opacity:1; transform:translateY(0);}}
+  .cyc span{display:inline-block; animation:spillIn .5s ease;}
+
+  /* stack only on mobile */
+  @media (max-width:768px){
+    .row{flex-direction:column;}
+    .left{flex:1 1 auto; min-height:auto;}
+    .right{flex:1 1 auto; min-height:auto; padding-bottom:48px;}
+  }
+  @media (prefers-reduced-motion: reduce){ *{animation:none!important; transition:none!important;} }
+</style>
+</head>
+<body>
+
+  <!-- RGB intro -->
+  <div id="intro">
+    <div class="p p1" style="background:var(--red)"></div>
+    <div class="p p2" style="background:var(--green)"></div>
+    <div class="p p3" style="background:var(--blue)"></div>
+  </div>
+
+  <!-- background washes -->
+  <div class="wash" style="top:-10%;left:-6%;width:420px;height:420px;background:var(--red)"></div>
+  <div class="wash" style="bottom:-12%;left:26%;width:480px;height:480px;background:var(--green)"></div>
+  <div class="wash" style="top:20%;right:8%;width:380px;height:380px;background:var(--blue)"></div>
+
+  <!-- floating corner-shape tiles -->
+  <div class="shapes" id="shapes"></div>
+
+  <div class="row">
+    <!-- LEFT -->
+    <div class="left">
+      <div class="drip" style="left:22%;height:34%;background:linear-gradient(var(--red),transparent)"></div>
+      <div class="drip" style="left:60%;height:48%;background:linear-gradient(var(--green),transparent)"></div>
+      <div class="drip" style="left:84%;height:26%;background:linear-gradient(var(--blue),transparent)"></div>
+
+      <div style="position:relative;z-index:3;display:flex;align-items:center;gap:10px">
+        <span class="mark"><i class="r"></i><i class="g"></i><i class="b"></i></span>
+        <span class="eyebrow">INKSPILLED.COM</span>
+      </div>
+
+      <div style="position:relative;z-index:3;margin:auto 0">
+        <h1 class="head">Soon, your brand<br>will be <span class="cyc" id="cyc"><span>remembered.</span></span></h1>
+        <p class="intro-p">A creative and technology studio building brands that move. The site's on its way — the studio's already open.</p>
+        <div class="clocks" id="clocks"></div>
+      </div>
+
+      <div style="position:relative;z-index:3" class="addr">
+        <div><b>Delhi</b>18, Hauz Khas Village<br>New Delhi · +91 99900 44819</div>
+        <div><b>Dubai</b>B-803, Prime Business Center, JVC<br>Dubai, UAE · +971 58 579 9959</div>
+        <div class="soon"><b>USA</b>Coming soon.</div>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="right">
+      <div class="card" id="card">
+        <h3>The site's still drying. We're not.</h3>
+        <p class="sub">Working with brands across India and the UAE right now. Tell us what you're building.</p>
+        <input id="name" placeholder="Your name" />
+        <input id="email" placeholder="Email" />
+        <input id="phone" placeholder="Phone (with country code)" />
+        <select id="service">
+          <option value="">What can we create for you?</option>
+          <option>Brand &amp; Design</option>
+          <option>Film &amp; Production</option>
+          <option>AI &amp; CGI</option>
+          <option>Strategy &amp; Planning</option>
+          <option>Social Media Marketing</option>
+          <option>Digital Marketing</option>
+          <option>Product Design &amp; Development</option>
+          <option>Not sure yet / Something else</option>
+        </select>
+        <textarea id="message" placeholder="What are you building?"></textarea>
+        <div class="err" id="err"></div>
+        <button id="send">Send request</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  /* intro reveal */
+  window.addEventListener('load', function(){
+    var intro = document.getElementById('intro');
+    setTimeout(function(){ intro.classList.add('open'); }, 550);
+    setTimeout(function(){ intro.classList.add('gone'); }, 1900);
+  });
+
+  /* floating corner-shape tiles + cursor repel */
+  (function(){
+    var COLS = ['var(--red)','var(--green)','var(--blue)'];
+    var data = [
+      ['12%','18%',22,0,15,0],['28%','70%',16,2,19,1],['44%','34%',28,1,17,2],
+      ['8%','52%',14,3,21,1],['36%','12%',18,4,16,2],['52%','78%',20,1.5,18,0],
+      ['20%','40%',12,2.5,22,2],['48%','56%',15,3.5,20,0],
+      ['72%','22%',18,1,18,2],['88%','60%',22,3,16,0],['66%','80%',14,2,20,1],
+      ['92%','30%',12,0.5,21,1],['78%','48%',16,4,17,2],['84%','14%',20,2.5,19,0]
+    ];
+    var wrap = document.getElementById('shapes');
+    var items = [];
+    data.forEach(function(d){
+      var s = document.createElement('span');
+      s.style.left=d[0]; s.style.top=d[1]; s.style.width=d[2]+'px'; s.style.height=d[2]+'px';
+      s.style.background=COLS[d[5]]; s.style.setProperty('--delay', d[3]+'s'); s.style.setProperty('--dur', d[4]+'s');
+      wrap.appendChild(s);
+      items.push({ el:s, ox:0, oy:0, tx:0, ty:0 }); // offsets (current + target)
+    });
+
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var hasFine = window.matchMedia('(pointer: fine)').matches;
+
+    if(!reduce && hasFine){
+      var RADIUS = 130;   // how close before a shape reacts
+      var PUSH = 45;      // how far it drifts away
+      window.addEventListener('mousemove', function(e){
+        for(var i=0;i<items.length;i++){
+          var r = items[i].el.getBoundingClientRect();
+          var cx = r.left + r.width/2, cy = r.top + r.height/2;
+          var dx = cx - e.clientX, dy = cy - e.clientY;
+          var dist = Math.hypot(dx, dy);
+          if(dist < RADIUS && dist > 0){
+            var force = (1 - dist/RADIUS) * PUSH;
+            items[i].tx = (dx/dist) * force;
+            items[i].ty = (dy/dist) * force;
+          } else {
+            items[i].tx = 0; items[i].ty = 0;
+          }
+        }
+      });
+      // ease offsets toward target; layer on top of the CSS float animation
+      (function tick(){
+        for(var i=0;i<items.length;i++){
+          var it = items[i];
+          it.ox += (it.tx - it.ox) * 0.12;
+          it.oy += (it.ty - it.oy) * 0.12;
+          it.el.style.marginLeft = it.ox.toFixed(1) + 'px';
+          it.el.style.marginTop  = it.oy.toFixed(1) + 'px';
+        }
+        requestAnimationFrame(tick);
+      })();
+    }
+  })();
+
+  /* kinetic word cycle */
+  (function(){
+    var words = ['remembered','in motion','impossible to miss','spilled'];
+    var cols = ['var(--red)','var(--green)','var(--blue)','var(--text)'];
+    var i = 0, host = document.getElementById('cyc');
+    setInterval(function(){
+      i = (i+1) % words.length;
+      host.innerHTML = '<span style="color:'+cols[i]+'">'+words[i]+'.</span>';
+    }, 2200);
+  })();
+
+  /* live clocks */
+  (function(){
+    var cities = [
+      {name:'Delhi', tz:'Asia/Kolkata', label:'IST', col:'var(--red)', soon:false},
+      {name:'Dubai', tz:'Asia/Dubai', label:'GST', col:'var(--green)', soon:false},
+      {name:'USA', tz:'America/New_York', label:'EST', col:'var(--blue)', soon:true}
+    ];
+    var wrap = document.getElementById('clocks');
+    function fmt(tz){ return new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:tz}).format(new Date()); }
+    cities.forEach(function(c){
+      var el = document.createElement('div');
+      el.className = 'clock' + (c.soon?' soon':'');
+      el.innerHTML = '<span class="dot" style="background:'+c.col+';box-shadow:0 0 10px '+c.col+'"></span>'+
+        '<span class="name">'+c.name+'</span>'+
+        '<span class="time" data-tz="'+c.tz+'">'+(c.soon?'soon':(fmt(c.tz)+' '+c.label))+'</span>';
+      if(!c.soon) el.querySelector('.time').dataset.label = c.label;
+      wrap.appendChild(el);
+    });
+    setInterval(function(){
+      document.querySelectorAll('.time[data-tz]').forEach(function(t){
+        if(t.dataset.label) t.textContent = fmt(t.dataset.tz)+' '+t.dataset.label;
+      });
+    }, 15000);
+  })();
+
+  /* form submit */
+  (function(){
+    var btn = document.getElementById('send'), card = document.getElementById('card'), err = document.getElementById('err');
+    var svc = document.getElementById('service');
+    // grey placeholder state when nothing chosen
+    var syncSvc = function(){ svc.classList.toggle('empty', svc.value === ''); };
+    svc.addEventListener('change', syncSvc); syncSvc();
+
+    btn.addEventListener('click', function(){
+      var name = document.getElementById('name').value.trim();
+      var email = document.getElementById('email').value.trim();
+      var phone = document.getElementById('phone').value.trim();
+      var service = svc.value;
+      var message = document.getElementById('message').value.trim();
+      if(!name){ err.style.display='block'; err.textContent='Add your name.'; return; }
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ err.style.display='block'; err.textContent='Add a valid email.'; return; }
+      err.style.display='none';
+
+      /* ============================================================
+         WIRE THIS TO YOUR EMAIL / BACKEND.
+         Easiest on Hostinger: use a form service like Formspree,
+         Web3Forms, or your own PHP mail() endpoint. Example (Web3Forms):
+
+         fetch('https://api.web3forms.com/submit', {
+           method:'POST', headers:{'Content-Type':'application/json'},
+           body: JSON.stringify({ access_key:'YOUR_KEY', name:name, email:email, phone:phone, service:service, message:message })
+         });
+
+         Or point it at a /submit.php you create on Hostinger.
+         ============================================================ */
+
+      card.innerHTML =
+        '<div class="sent-mark"><i style="background:var(--red);border-radius:4px"></i>'+
+        '<i style="background:var(--green)"></i><i style="background:var(--blue);border-radius:0 4px 4px 4px"></i></div>'+
+        '<h3>Got it — the ink&#39;s on the page.</h3>'+
+        '<p class="sub" style="margin-bottom:0">Thanks, '+name.split(' ')[0]+'. We&#39;ll be in touch within one business day.</p>';
+    });
+  })();
+</script>
+</body>
+</html>
