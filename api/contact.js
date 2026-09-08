@@ -98,6 +98,12 @@ function parseBody(req) {
   });
 }
 
+function requestOrigin(req) {
+  const origin = String(req.headers.origin || '').trim();
+  if (origin) return origin.replace(/\/$/, '') + '/';
+  return SITE_URL;
+}
+
 function mailMessage(fields) {
   const fromName = String(fields.name).replace(/"/g, '');
   const { text, html } = emailBodies(fields);
@@ -111,7 +117,6 @@ function mailMessage(fields) {
     headers: {
       'X-Mailer': 'Inkspilled',
       'X-Priority': '3',
-      'Auto-Submitted': 'auto-generated',
     },
     envelope: { from: MAIL_TO, to: MAIL_TO },
   };
@@ -179,11 +184,6 @@ function emailBodies(fields) {
   return { text, html };
 }
 
-async function sendMail(transport, fields) {
-  await transport.sendMail(mailMessage(fields));
-  return true;
-}
-
 async function sendWithSmtp(fields) {
   const pass = process.env.SMTP_PASS;
   if (!pass) return false;
@@ -194,6 +194,9 @@ async function sendWithSmtp(fields) {
       port: Number(process.env.SMTP_PORT || 587),
       secure: false,
       requireTLS: true,
+      connectionTimeout: 4000,
+      greetingTimeout: 4000,
+      socketTimeout: 4000,
       auth: { user: user, pass: pass },
     });
     const message = mailMessage(fields);
@@ -207,33 +210,6 @@ async function sendWithSmtp(fields) {
   }
 }
 
-async function sendWithDirectMx(fields) {
-  const targets = [
-    { host: 'inkspilled-in.mail.protection.outlook.com', port: 587 },
-    { host: 'inkspilled-in.mail.protection.outlook.com', port: 25 },
-  ];
-  for (let i = 0; i < targets.length; i += 1) {
-    try {
-      await sendMail(
-        nodemailer.createTransport({
-          host: targets[i].host,
-          port: targets[i].port,
-          secure: false,
-          tls: { rejectUnauthorized: true },
-          connectionTimeout: 8000,
-          greetingTimeout: 8000,
-          socketTimeout: 8000,
-        }),
-        fields
-      );
-      return true;
-    } catch (err) {
-      console.error('Direct MX failed:', targets[i].port, err && err.code ? err.code : 'SEND');
-    }
-  }
-  return false;
-}
-
 function acceptedMailResponse(status, data, raw) {
   if (data && (data.ok === true || data.success === true || data.success === 'true')) return true;
   const text = String((data && (data.message || data.error)) || raw || '').toLowerCase();
@@ -241,7 +217,8 @@ function acceptedMailResponse(status, data, raw) {
   return status >= 200 && status < 300 && Boolean(raw);
 }
 
-async function sendToMailbox(fields) {
+async function sendToMailbox(fields, origin) {
+  const page = origin && origin.indexOf('inkspilled.com') !== -1 ? origin : SITE_URL;
   const payload = {
     name: fields.name,
     email: fields.email,
@@ -249,7 +226,7 @@ async function sendToMailbox(fields) {
     service: fields.service,
     message: fields.message,
     _subject: 'New Inkspilled form submission from ' + fields.name,
-    _template: 'box',
+    _template: 'table',
     _captcha: 'false',
     _replyto: fields.email,
   };
@@ -259,8 +236,8 @@ async function sendToMailbox(fields) {
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
-        Origin: SITE_URL.replace(/\/$/, ''),
-        Referer: SITE_URL,
+        Origin: page.replace(/\/$/, ''),
+        Referer: page,
       },
       body: JSON.stringify(payload),
     });
@@ -319,10 +296,8 @@ module.exports = async function handler(req, res) {
   }
 
   const fields = { name: name, email: email, phone: phone, service: service, message: message };
-  const delivered =
-    (await sendWithSmtp(fields)) ||
-    (await sendWithDirectMx(fields)) ||
-    (await sendToMailbox(fields));
+  const origin = requestOrigin(req);
+  const delivered = (await sendWithSmtp(fields)) || (await sendToMailbox(fields, origin));
 
   if (!delivered) {
     json(res, 500, { ok: false, error: 'Could not send. Please try again in a moment.' });

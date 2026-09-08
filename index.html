@@ -293,6 +293,7 @@
 
   /* form submit */
   (function(){
+    var MAILBOX = 'https://formsubmit.co/ajax/navneetsingh@inkspilled.in';
     var form = document.getElementById('lead');
     var btn = document.getElementById('send'), card = document.getElementById('card'), err = document.getElementById('err');
     var svc = document.getElementById('service');
@@ -317,6 +318,26 @@
         '<h3>Got it — the ink&#39;s on the page.</h3>'+
         '<p class="sub" style="margin-bottom:0">Thanks, '+first+'. We&#39;ll be in touch within one business day.</p>';
     }
+    function mailOk(status, d, raw){
+      if (d && (d.ok === true || d.success === true || d.success === 'true')) return true;
+      var text = String((d && (d.message || d.error)) || raw || '').toLowerCase();
+      if (text.indexOf('activat') !== -1 || text.indexOf('thank') !== -1) return true;
+      return status >= 200 && status < 300 && Boolean(raw || (d && Object.keys(d).length));
+    }
+    function readJson(r){
+      return r.text().then(function(raw){
+        var d = {};
+        try { d = raw ? JSON.parse(raw) : {}; } catch(e) { d = {}; }
+        return { status:r.status, ok:r.ok, d:d, raw:raw };
+      });
+    }
+    function postJson(url, body){
+      return fetch(url, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
+        body: JSON.stringify(body)
+      }).then(readJson);
+    }
 
     form.addEventListener('submit', function(e){
       e.preventDefault();
@@ -332,20 +353,30 @@
       btn.disabled = true;
       btn.textContent = 'Sending…';
 
-      fetch('/api/contact', {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
-        body: JSON.stringify({ name:name, email:email, phone:phone, service:service, message:message, website:website })
-      }).then(function(r){
-        return r.json().catch(function(){ return {}; }).then(function(d){ return { ok:r.ok, d:d }; });
-      }).then(function(res){
-        if(!res.ok || !res.d || !res.d.ok){
-          showError((res.d && res.d.error) || 'Could not send. Please try again.');
-          return;
-        }
+      var apiBody = { name:name, email:email, phone:phone, service:service, message:message, website:website };
+      var boxBody = {
+        name:name, email:email, phone:phone, service:service, message:message,
+        _subject:'New Inkspilled form submission from '+name,
+        _template:'table',
+        _captcha:'false',
+        _replyto:email
+      };
+
+      postJson('/api/contact', apiBody).then(function(res){
+        if(mailOk(res.status, res.d, res.raw) && (res.ok || (res.d && res.d.ok))) return true;
+        return postJson(MAILBOX, boxBody).then(function(box){
+          return mailOk(box.status, box.d, box.raw);
+        });
+      }).then(function(ok){
+        if(!ok){ showError('Could not send. Please try again in a moment.'); return; }
         showThanks(name);
       }).catch(function(){
-        showError('Could not send. Check your connection and try again.');
+        postJson(MAILBOX, boxBody).then(function(box){
+          if(mailOk(box.status, box.d, box.raw)) showThanks(name);
+          else showError('Could not send. Check your connection and try again.');
+        }).catch(function(){
+          showError('Could not send. Check your connection and try again.');
+        });
       });
     });
   })();
