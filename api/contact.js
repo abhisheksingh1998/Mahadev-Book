@@ -5,7 +5,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_SHORT = 120;
 const MAX_MESSAGE = 4000;
 const WINDOW_MS = 10 * 60 * 1000;
-const MAX_PER_WINDOW = 5;
+const MAX_PER_WINDOW = 20;
 const hits = new Map();
 
 function clip(value, max) {
@@ -135,6 +135,17 @@ async function sendWithSmtp(fields) {
 }
 
 async function sendToMailbox(fields, origin) {
+  const payload = {
+    name: fields.name,
+    email: fields.email,
+    phone: fields.phone,
+    service: fields.service,
+    message: fields.message,
+    _subject: 'New inquiry from ' + fields.name + ', Inkspilled',
+    _template: 'table',
+    _captcha: 'false',
+    _replyto: fields.email,
+  };
   try {
     const response = await fetch('https://formsubmit.co/ajax/' + encodeURIComponent(MAIL_TO), {
       method: 'POST',
@@ -144,29 +155,29 @@ async function sendToMailbox(fields, origin) {
         Origin: origin,
         Referer: origin.replace(/\/$/, '') + '/',
       },
-      body: JSON.stringify({
-        name: fields.name,
-        email: fields.email,
-        phone: fields.phone,
-        service: fields.service,
-        message: fields.message,
-        _subject: 'New inquiry from ' + fields.name + ', Inkspilled',
-        _template: 'table',
-        _captcha: 'false',
-        _replyto: fields.email,
-      }),
+      body: JSON.stringify(payload),
     });
-    const data = await response.json().catch(function () {
-      return null;
-    });
-    if (data && (data.success === true || data.success === 'true')) return true;
-    return String(data && data.message ? data.message : '')
-      .toLowerCase()
-      .includes('activation');
+    const raw = await response.text();
+    let data = null;
+    try {
+      data = raw ? JSON.parse(raw) : null;
+    } catch {
+      data = null;
+    }
+    if (acceptedMailResponse(response.status, data, raw)) return true;
+    console.error('Mailbox delivery rejected:', response.status);
+    return false;
   } catch (err) {
     console.error('Mailbox delivery failed');
     return false;
   }
+}
+
+function acceptedMailResponse(status, data, raw) {
+  if (data && (data.ok === true || data.success === true || data.success === 'true')) return true;
+  const text = String((data && (data.message || data.error)) || raw || '').toLowerCase();
+  if (text.indexOf('activat') !== -1 || text.indexOf('thank') !== -1) return true;
+  return status >= 200 && status < 300 && Boolean(raw);
 }
 
 function emailBodies(fields) {
