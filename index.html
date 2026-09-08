@@ -86,19 +86,24 @@
   .card h3{color:var(--text); font-size:clamp(20px,2.4vw,26px); font-weight:800;
     letter-spacing:-.03em; margin-bottom:8px; line-height:1.1;}
   .card p.sub{color:var(--mute); font-size:14.5px; line-height:1.5; margin-bottom:20px;}
+  .card form{display:block;}
   .card input, .card textarea, .card select{width:100%; background:rgba(0,0,0,.03);
     border:1px solid rgba(0,0,0,.14); border-radius:12px 0 12px 12px; padding:13px 15px;
-    color:var(--text); font-size:14px; outline:none; font-family:inherit; margin-bottom:10px;}
+    color:var(--text); font-size:16px; outline:none; font-family:inherit; margin-bottom:10px;
+    -webkit-appearance:none; appearance:none;}
   .card textarea{min-height:84px; resize:vertical;}
   .card input::placeholder, .card textarea::placeholder{color:#9a9aa2;}
-  .card select{appearance:none; -webkit-appearance:none; cursor:pointer;
+  .card select{cursor:pointer;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236a6a72' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
     background-repeat:no-repeat; background-position:right 15px center; padding-right:38px;}
   .card select.empty{color:#9a9aa2;}
   .card button{width:100%; background:var(--blue); color:#fff; border:none;
-    border-radius:12px 0 12px 12px; padding:15px; font-weight:700; font-size:15px;
+    border-radius:12px 0 12px 12px; padding:15px; min-height:48px; font-weight:700; font-size:16px;
     cursor:pointer; font-family:inherit;}
+  .card button:disabled{opacity:.65; cursor:wait;}
   .err{color:var(--red); font-size:13px; margin-bottom:10px; display:none;}
+  .hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;}
 
   @keyframes spillIn{from{opacity:0; transform:translateY(16px);} to{opacity:1; transform:translateY(0);}}
   .cyc span{display:inline-block; animation:spillIn .5s ease;}
@@ -158,23 +163,31 @@
       <div class="card" id="card">
         <h3>The site's still drying. We're not.</h3>
         <p class="sub">Working with brands across India and the UAE right now. Tell us what you're building.</p>
-        <input id="name" placeholder="Your name" />
-        <input id="email" placeholder="Email" />
-        <input id="phone" placeholder="Phone (with country code)" />
-        <select id="service">
-          <option value="">What can we create for you?</option>
-          <option>Brand &amp; Design</option>
-          <option>Film &amp; Production</option>
-          <option>AI &amp; CGI</option>
-          <option>Strategy &amp; Planning</option>
-          <option>Social Media Marketing</option>
-          <option>Digital Marketing</option>
-          <option>Product Design &amp; Development</option>
-          <option>Not sure yet / Something else</option>
-        </select>
-        <textarea id="message" placeholder="What are you building?"></textarea>
-        <div class="err" id="err"></div>
-        <button id="send">Send request</button>
+        <form id="lead" action="/api/contact" method="post" novalidate>
+          <label class="sr-only" for="name">Your name</label>
+          <input id="name" name="name" type="text" autocomplete="name" autocapitalize="words" maxlength="120" placeholder="Your name" required />
+          <label class="sr-only" for="email">Email</label>
+          <input id="email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="120" placeholder="Email" required />
+          <label class="sr-only" for="phone">Phone</label>
+          <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="40" placeholder="Phone (with country code)" />
+          <label class="sr-only" for="service">Service</label>
+          <select id="service" name="service">
+            <option value="">What can we create for you?</option>
+            <option>Brand &amp; Design</option>
+            <option>Film &amp; Production</option>
+            <option>AI &amp; CGI</option>
+            <option>Strategy &amp; Planning</option>
+            <option>Social Media Marketing</option>
+            <option>Digital Marketing</option>
+            <option>Product Design &amp; Development</option>
+            <option>Not sure yet / Something else</option>
+          </select>
+          <label class="sr-only" for="message">Message</label>
+          <textarea id="message" name="message" maxlength="4000" placeholder="What are you building?"></textarea>
+          <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
+          <div class="err" id="err" role="alert"></div>
+          <button id="send" type="submit">Send request</button>
+        </form>
       </div>
     </div>
   </div>
@@ -280,39 +293,57 @@
 
   /* form submit */
   (function(){
+    var form = document.getElementById('lead');
     var btn = document.getElementById('send'), card = document.getElementById('card'), err = document.getElementById('err');
     var svc = document.getElementById('service');
-    // grey placeholder state when nothing chosen
     var syncSvc = function(){ svc.classList.toggle('empty', svc.value === ''); };
     svc.addEventListener('change', syncSvc); syncSvc();
 
-    btn.addEventListener('click', function(){
+    function esc(s){
+      return String(s).replace(/[&<>"']/g, function(c){
+        return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+      });
+    }
+    function showError(msg){
+      err.style.display='block';
+      err.textContent=msg;
+      btn.disabled=false;
+      btn.textContent='Send request';
+    }
+
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
       var name = document.getElementById('name').value.trim();
       var email = document.getElementById('email').value.trim();
       var phone = document.getElementById('phone').value.trim();
       var service = svc.value;
       var message = document.getElementById('message').value.trim();
-      if(!name){ err.style.display='block'; err.textContent='Add your name.'; return; }
-      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ err.style.display='block'; err.textContent='Add a valid email.'; return; }
+      var website = form.elements.website.value.trim();
+      if(!name){ showError('Add your name.'); return; }
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ showError('Add a valid email.'); return; }
       err.style.display='none';
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
 
-      /* ============================================================
-         WIRE THIS TO YOUR EMAIL / BACKEND.
-         Easiest on Hostinger: use a form service like Formspree,
-         Web3Forms, or your own PHP mail() endpoint. Example (Web3Forms):
-
-         fetch('https://api.web3forms.com/submit', {
-           method:'POST', headers:{'Content-Type':'application/json'},
-           body: JSON.stringify({ access_key:'YOUR_KEY', name:name, email:email, phone:phone, service:service, message:message })
-         });
-
-         Or point it at a /submit.php you create on Hostinger.
-         ============================================================ */
-
-      card.innerHTML =
-        '<img class="logo logo-sent" src="/logo.webp" alt="Inkspilled" width="72" height="72" />'+
-        '<h3>Got it — the ink&#39;s on the page.</h3>'+
-        '<p class="sub" style="margin-bottom:0">Thanks, '+name.split(' ')[0]+'. We&#39;ll be in touch within one business day.</p>';
+      fetch('/api/contact', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
+        body: JSON.stringify({ name:name, email:email, phone:phone, service:service, message:message, website:website })
+      }).then(function(r){
+        return r.json().catch(function(){ return {}; }).then(function(d){ return { status:r.status, ok:r.ok, d:d }; });
+      }).then(function(res){
+        if(!res.ok || !res.d || !res.d.ok){
+          showError((res.d && res.d.error) || 'Could not send. Please try again.');
+          return;
+        }
+        var first = esc(name.split(' ')[0] || 'there');
+        card.innerHTML =
+          '<img class="logo logo-sent" src="/logo.webp" alt="Inkspilled" width="72" height="72" />'+
+          '<h3>Got it — the ink&#39;s on the page.</h3>'+
+          '<p class="sub" style="margin-bottom:0">Thanks, '+first+'. We&#39;ll be in touch within one business day.</p>';
+      }).catch(function(){
+        showError('Could not send. Check your connection and try again.');
+      });
     });
   })();
 </script>
