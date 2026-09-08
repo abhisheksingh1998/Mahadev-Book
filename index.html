@@ -9,10 +9,9 @@
 <meta property="og:title" content="Inkspilled — Coming Soon" />
 <meta property="og:description" content="A creative and technology studio building brands that move. Delhi · Dubai · USA soon." />
 <meta property="og:type" content="website" />
-<!-- Favicon (add your files to the same folder) -->
-<link rel="icon" href="/favicon.ico" sizes="any" />
-<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<meta property="og:image" content="/logo.webp" />
+<link rel="icon" href="/logo.webp" type="image/webp" />
+<link rel="apple-touch-icon" href="/logo.webp" />
 
 <style>
   :root{
@@ -59,13 +58,10 @@
   /* drip lines */
   .drip{position:absolute; top:0; width:2px; z-index:2; opacity:.4; pointer-events:none;}
 
-  /* logo mark */
-  .mark{display:flex; gap:3px;}
-  .mark i{display:block; width:8px; height:26px;}
-  .mark .r{background:var(--red); border-radius:3px;}
-  .mark .g{background:var(--green);}
-  .mark .b{background:var(--blue); border-radius:0 3px 3px 3px;}
-  .eyebrow{font-size:12.5px; font-weight:600; color:var(--mute); letter-spacing:.04em;}
+  /* brand logo */
+  .brand{position:relative; z-index:3; display:inline-flex; align-items:center;}
+  .logo{display:block; width:clamp(52px, 7vw, 72px); height:auto; border-radius:14px;}
+  .logo-sent{margin-bottom:16px;}
 
   h1.head{font-size:clamp(32px,4.2vw,58px); font-weight:800; letter-spacing:-.04em;
     line-height:1.03; color:var(--text);}
@@ -103,8 +99,6 @@
     border-radius:12px 0 12px 12px; padding:15px; font-weight:700; font-size:15px;
     cursor:pointer; font-family:inherit;}
   .err{color:var(--red); font-size:13px; margin-bottom:10px; display:none;}
-  .sent-mark{display:flex; gap:4px; margin-bottom:16px;}
-  .sent-mark i{display:block; width:9px; height:30px;}
 
   @keyframes spillIn{from{opacity:0; transform:translateY(16px);} to{opacity:1; transform:translateY(0);}}
   .cyc span{display:inline-block; animation:spillIn .5s ease;}
@@ -142,10 +136,9 @@
       <div class="drip" style="left:60%;height:48%;background:linear-gradient(var(--green),transparent)"></div>
       <div class="drip" style="left:84%;height:26%;background:linear-gradient(var(--blue),transparent)"></div>
 
-      <div style="position:relative;z-index:3;display:flex;align-items:center;gap:10px">
-        <span class="mark"><i class="r"></i><i class="g"></i><i class="b"></i></span>
-        <span class="eyebrow">INKSPILLED.COM</span>
-      </div>
+      <a class="brand" href="/" aria-label="Inkspilled">
+        <img class="logo" src="/logo.webp" alt="Inkspilled" width="72" height="72" />
+      </a>
 
       <div style="position:relative;z-index:3;margin:auto 0">
         <h1 class="head">Soon, your brand<br>will be <span class="cyc" id="cyc"><span>remembered.</span></span></h1>
@@ -317,8 +310,7 @@
          ============================================================ */
 
       card.innerHTML =
-        '<div class="sent-mark"><i style="background:var(--red);border-radius:4px"></i>'+
-        '<i style="background:var(--green)"></i><i style="background:var(--blue);border-radius:0 4px 4px 4px"></i></div>'+
+        '<img class="logo logo-sent" src="/logo.webp" alt="Inkspilled" width="72" height="72" />'+
         '<h3>Got it — the ink&#39;s on the page.</h3>'+
         '<p class="sub" style="margin-bottom:0">Thanks, '+name.split(' ')[0]+'. We&#39;ll be in touch within one business day.</p>';
     });
