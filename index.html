@@ -12,6 +12,9 @@
 <meta property="og:image" content="/logo.png" />
 <link rel="icon" href="/logo.png" type="image/png" />
 <link rel="apple-touch-icon" href="/logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500&display=swap" rel="stylesheet" />
 
 <style>
   :root{
@@ -62,8 +65,9 @@
   .drip{position:absolute; top:0; width:2px; z-index:2; opacity:.4; pointer-events:none;}
 
   /* brand logo */
-  .brand{position:relative; z-index:3; display:inline-flex; align-items:center;}
-  .logo{display:block; width:clamp(44px, 6vw, 60px); height:auto; border-radius:14px;}
+  .brand{position:relative; z-index:3; display:inline-flex; align-items:center; gap:12px; text-decoration:none; color:var(--text);}
+  .logo{display:block; width:clamp(44px, 6vw, 60px); height:auto; border-radius:14px; flex-shrink:0;}
+  .wordmark{font-family:'Poppins',sans-serif; font-weight:500; font-size:clamp(22px,3.2vw,32px); letter-spacing:-.02em; line-height:1;}
   .logo-sent{margin-bottom:16px;}
 
   h1.head{font-size:clamp(32px,4.2vw,58px); font-weight:800; letter-spacing:-.04em;
@@ -149,7 +153,8 @@
       <div class="drip" style="left:84%;height:26%;background:linear-gradient(var(--blue),transparent)"></div>
 
       <a class="brand" href="/" aria-label="Inkspilled">
-        <img class="logo" src="/logo.png" alt="Inkspilled" width="60" height="60" />
+        <img class="logo" src="/logo.png" alt="" width="60" height="60" />
+        <span class="wordmark">inkspilled</span>
       </a>
 
       <div style="position:relative;z-index:3;margin:auto 0">
@@ -325,7 +330,7 @@
     function showThanks(name){
       var first = esc(name.split(' ')[0] || 'there');
       card.innerHTML =
-        '<img class="logo logo-sent" src="/logo.png" alt="Inkspilled" width="60" height="60" />'+
+        '<div class="brand logo-sent"><img class="logo" src="/logo.png" alt="" width="60" height="60" /><span class="wordmark">inkspilled</span></div>'+
         '<h3>Got it — the ink&#39;s on the page.</h3>'+
         '<p class="sub" style="margin-bottom:0">Thanks, '+first+'. We&#39;ll be in touch within one business day.</p>';
     }
