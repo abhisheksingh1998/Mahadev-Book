@@ -19,11 +19,12 @@
     --red:#e8352b; --green:#4ea63a; --blue:#1a86d8;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
-  html,body{height:100%;}
+  html{min-height:100%;}
   body{
     background:var(--bg); color:var(--text);
     font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
     -webkit-font-smoothing:antialiased; overflow-x:hidden;
+    min-height:100%;
   }
 
   /* ---- RGB intro ---- */
@@ -105,6 +106,20 @@
   .hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;}
   .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;}
 
+  /* sitemap footer */
+  .sitemap{position:relative;z-index:3;background:#000;color:#fff;
+    padding:clamp(40px,6vw,72px) clamp(28px,4vw,60px) 28px;}
+  .sitemap h2{font-size:13px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+    color:rgba(255,255,255,.45);margin-bottom:28px;}
+  .sitemap-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:32px 40px;}
+  .sitemap h3{font-size:13px;font-weight:700;letter-spacing:.04em;color:#fff;margin-bottom:12px;}
+  .sitemap ul{list-style:none;}
+  .sitemap a,.sitemap span{display:block;color:rgba(255,255,255,.72);font-size:14px;line-height:1.9;
+    text-decoration:none;}
+  .sitemap a:hover{color:#fff;}
+  .sitemap .copy{margin-top:36px;padding-top:22px;border-top:1px solid rgba(255,255,255,.12);
+    color:rgba(255,255,255,.55);font-size:13px;}
+
   @keyframes spillIn{from{opacity:0; transform:translateY(16px);} to{opacity:1; transform:translateY(0);}}
   .cyc span{display:inline-block; animation:spillIn .5s ease;}
 
@@ -113,6 +128,10 @@
     .row{flex-direction:column;}
     .left{flex:1 1 auto; min-height:auto;}
     .right{flex:1 1 auto; min-height:auto; padding-bottom:48px;}
+    .sitemap-grid{grid-template-columns:1fr 1fr;gap:28px 24px;}
+  }
+  @media (max-width:480px){
+    .sitemap-grid{grid-template-columns:1fr;}
   }
   @media (prefers-reduced-motion: reduce){ *{animation:none!important; transition:none!important;} }
 </style>
@@ -151,7 +170,7 @@
         <div class="clocks" id="clocks"></div>
       </div>
 
-      <div style="position:relative;z-index:3" class="addr">
+      <div style="position:relative;z-index:3" class="addr" id="locations">
         <div><b>Delhi</b>18, Hauz Khas Village<br>New Delhi · +91 99900 44819</div>
         <div><b>Dubai</b>B-803, Prime Business Center, JVC<br>Dubai, UAE · +971 58 579 9959</div>
         <div class="soon"><b>USA</b>Coming soon.</div>
@@ -191,6 +210,39 @@
       </div>
     </div>
   </div>
+
+  <footer class="sitemap" id="sitemap">
+    <h2>Sitemap</h2>
+    <div class="sitemap-grid">
+      <div>
+        <h3>Studio</h3>
+        <ul>
+          <li><a href="/">Home</a></li>
+          <li><a href="#card">Contact</a></li>
+          <li><a href="#locations">Locations</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3>Services</h3>
+        <ul>
+          <li><a href="#card">Brand &amp; Design</a></li>
+          <li><a href="#card">Film &amp; Production</a></li>
+          <li><a href="#card">AI &amp; CGI</a></li>
+          <li><a href="#card">Strategy &amp; Planning</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3>More</h3>
+        <ul>
+          <li><a href="#card">Social Media Marketing</a></li>
+          <li><a href="#card">Digital Marketing</a></li>
+          <li><a href="#card">Product Design &amp; Development</a></li>
+          <li><a href="#locations">Delhi · Dubai · USA</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="copy">© 2026 Inkspilled. All Rights Reserved.</p>
+  </footer>
 
 <script>
   /* intro reveal */
