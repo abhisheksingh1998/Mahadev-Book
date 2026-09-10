@@ -60,7 +60,7 @@
 
   /* brand logo */
   .brand{position:relative; z-index:3; display:inline-flex; align-items:center;}
-  .logo{display:block; width:clamp(52px, 7vw, 72px); height:auto; border-radius:14px;}
+  .logo{display:block; width:clamp(44px, 6vw, 60px); height:auto; border-radius:14px;}
   .logo-sent{margin-bottom:16px;}
 
   h1.head{font-size:clamp(32px,4.2vw,58px); font-weight:800; letter-spacing:-.04em;
@@ -142,7 +142,7 @@
       <div class="drip" style="left:84%;height:26%;background:linear-gradient(var(--blue),transparent)"></div>
 
       <a class="brand" href="/" aria-label="Inkspilled">
-        <img class="logo" src="/logo.png" alt="Inkspilled" width="72" height="72" />
+        <img class="logo" src="/logo.png" alt="Inkspilled" width="60" height="60" />
       </a>
 
       <div style="position:relative;z-index:3;margin:auto 0">
@@ -314,7 +314,7 @@
     function showThanks(name){
       var first = esc(name.split(' ')[0] || 'there');
       card.innerHTML =
-        '<img class="logo logo-sent" src="/logo.png" alt="Inkspilled" width="72" height="72" />'+
+        '<img class="logo logo-sent" src="/logo.png" alt="Inkspilled" width="60" height="60" />'+
         '<h3>Got it — the ink&#39;s on the page.</h3>'+
         '<p class="sub" style="margin-bottom:0">Thanks, '+first+'. We&#39;ll be in touch within one business day.</p>';
     }
